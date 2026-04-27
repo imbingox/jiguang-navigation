@@ -16,19 +16,25 @@ const dbPath = path.isAbsolute(rawPath) ? rawPath : path.resolve(process.cwd(), 
 mkdirSync(path.dirname(dbPath), { recursive: true });
 
 const npxCommand = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-const result = spawnSync(
-  npxCommand,
-  ['prisma', 'db', 'push'],
-  {
-    cwd: process.cwd(),
-    stdio: 'inherit',
-    env: {
-      ...process.env,
-      DATABASE_URL: databaseUrl,
-    },
-  }
-);
 
-if (result.status !== 0) {
-  process.exit(result.status ?? 1);
+for (const args of [
+  ['prisma', 'generate'],
+  ['prisma', 'db', 'push'],
+]) {
+  const result = spawnSync(
+    npxCommand,
+    args,
+    {
+      cwd: process.cwd(),
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        DATABASE_URL: databaseUrl,
+      },
+    }
+  );
+
+  if (result.status !== 0) {
+    process.exit(result.status ?? 1);
+  }
 }
