@@ -2,9 +2,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { requireAdmin } from '@/lib/auth';
 
 export async function PUT(request: Request) {
     try {
+        const unauthorized = await requireAdmin();
+        if (unauthorized) return unauthorized;
+
         const body = await request.json();
         const { password } = body;
         console.log('[Private Update] Request received');

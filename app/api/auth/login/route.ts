@@ -1,13 +1,18 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { isWeakSessionSecret, setSessionCookie } from '@/lib/auth';
 
 export async function POST(request: Request) {
     try {
-        const { username, password } = await request.json();
-        const user = await prisma.user.findUnique({ where: { username } });
+        if (isWeakSessionSecret()) {
+            return NextResponse.json({ error: 'SESSION_SECRET is required in production' }, { status: 500 });
+        }
 
-        if (!user) {
+        const { password } = await request.json();
+        const user = await prisma.user.findUnique({ where: { username: 'admin' } });
+
+        if (!user || !password) {
             return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
         }
 
@@ -16,9 +21,10 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
         }
 
-        // In a real app, set a session cookie here.
-        // For now, we return success and let frontend handle "isLoggedIn" state.
-        return NextResponse.json({ success: true });
+        const usesDefaultPassword = await bcrypt.compare('123456', user.passwordHash);
+        const response = NextResponse.json({ success: true, mustChangePassword: usesDefaultPassword });
+        setSessionCookie(response, user.username);
+        return response;
     } catch (error) {
         return NextResponse.json({ error: 'Login failed' }, { status: 500 });
     }

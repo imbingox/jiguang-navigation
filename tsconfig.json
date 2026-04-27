@@ -2,6 +2,7 @@
   "compilerOptions": {
     "target": "ES2017",
     "baseUrl": ".",
+    "ignoreDeprecations": "5.0",
     "lib": [
       "dom",
       "dom.iterable",
@@ -26,9 +27,6 @@
     "paths": {
       "@/*": [
         "./*"
-      ],
-      "@/generated/*": [
-        "generated/*"
       ]
     }
   },

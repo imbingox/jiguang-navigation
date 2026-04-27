@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/auth';
 
 export async function PUT(request: Request) {
     try {
+        const unauthorized = await requireAdmin();
+        if (unauthorized) return unauthorized;
+
         const body = await request.json();
         const { layout, config, theme } = body;
 

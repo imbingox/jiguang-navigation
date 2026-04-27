@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth';
 
 // Simple in-memory cache
 let cachedFonts: any[] | null = null;
@@ -29,6 +30,9 @@ async function getFullFontList() {
 }
 
 export async function GET(request: Request) {
+    const unauthorized = await requireAdmin();
+    if (unauthorized) return unauthorized;
+
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q')?.toLowerCase() || '';
 

@@ -693,24 +693,15 @@ async function main() {
         }
     })
 
-    // Seed Admin User (admin / 123456)
-    // Note: In a real app, use bcrypt to hash. Here we will use a simple hash or just plain text for now and update later, 
-    // BUT the plan said use bcrypt. I will use a hardcoded hash for "123456" to avoid importing bcrypt in seed if possible, 
-    // or just import it.
-    // "123456" hashed with bcrypt (cost 10) is: $2a$10$X7.
-    // Actually, let's just use the library since I installed it.
-
-    // Wait, I can't easily use require('bcryptjs') if I am in module mode without setup.
-    // I will use a placeholder hash for "123456" generated online to be safe and simple.
-    // $2a$10$EpW.
-    // Let's use a known hash for "123456": $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy
+    // Seed Admin User (default password: 123456)
+    const passwordHash = '$2b$10$pTSVGUeY0cN.4qSxb4nADulhrBR0TcTS/f0.rV7c4W56kr3Pc2gx.';
 
     await prisma.user.upsert({
         where: { username: 'admin' },
         update: {},
         create: {
             username: 'admin',
-            passwordHash: '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy' // 123456
+            passwordHash
         }
     })
 

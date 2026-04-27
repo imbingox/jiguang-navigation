@@ -4,6 +4,7 @@ import { prisma } from './prisma';
 import { Readable } from 'stream';
 import { finished } from 'stream/promises';
 import { mkdir } from 'fs/promises';
+import { assertPublicHttpUrl } from './safe-url';
 
 const ICONS_DIR = path.join(process.cwd(), 'public', 'uploads', 'icons');
 
@@ -16,8 +17,7 @@ export async function downloadAndSaveIcon(siteId: string, iconUrl: string): Prom
     try {
         console.log(`[Icon Downloader] Starting download for site ${siteId} from ${iconUrl}`);
 
-        // 1. Check if URL is valid
-        new URL(iconUrl);
+        const safeUrl = await assertPublicHttpUrl(iconUrl);
 
         // 2. Prepare directory
         if (!fs.existsSync(ICONS_DIR)) {
@@ -36,8 +36,9 @@ export async function downloadAndSaveIcon(siteId: string, iconUrl: string): Prom
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
         try {
-            const response = await fetch(iconUrl, {
+            const response = await fetch(safeUrl, {
                 signal: controller.signal,
+                redirect: 'error',
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
                 }
@@ -51,6 +52,18 @@ export async function downloadAndSaveIcon(siteId: string, iconUrl: string): Prom
 
             if (!response.body) {
                 console.error('[Icon Downloader] No response body');
+                return null;
+            }
+
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.startsWith('image/') || contentType.includes('svg')) {
+                console.error(`[Icon Downloader] Unsupported content type: ${contentType}`);
+                return null;
+            }
+
+            const contentLength = Number(response.headers.get('content-length') || 0);
+            if (contentLength > 1024 * 1024) {
+                console.error('[Icon Downloader] Icon too large');
                 return null;
             }
 

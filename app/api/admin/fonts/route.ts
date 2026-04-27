@@ -1,11 +1,14 @@
-import { PrismaClient } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/auth';
 
 
 // GET: List all saved custom fonts
 export async function GET() {
     try {
+        const unauthorized = await requireAdmin();
+        if (unauthorized) return unauthorized;
+
         const fonts = await prisma.customFont.findMany({
             orderBy: { createdAt: 'desc' }
         });
@@ -18,6 +21,9 @@ export async function GET() {
 // POST: Add a new custom font (link to fonts.loli.net)
 export async function POST(request: Request) {
     try {
+        const unauthorized = await requireAdmin();
+        if (unauthorized) return unauthorized;
+
         const body = await request.json();
         /* 
            Body: { name: "Open Sans", family: "Open Sans" } 

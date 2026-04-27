@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/auth';
 
 
 export async function DELETE(
@@ -7,6 +8,9 @@ export async function DELETE(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const unauthorized = await requireAdmin();
+        if (unauthorized) return unauthorized;
+
         const { id } = await params;
         await prisma.todo.delete({
             where: { id }
@@ -22,6 +26,9 @@ export async function PATCH(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const unauthorized = await requireAdmin();
+        if (unauthorized) return unauthorized;
+
         const { id } = await params;
         const { done } = await request.json();
         const todo = await prisma.todo.update({

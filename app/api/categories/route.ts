@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/auth';
 
 export async function POST(request: Request) {
     try {
+        const unauthorized = await requireAdmin();
+        if (unauthorized) return unauthorized;
+
         const body = await request.json();
         const category = await prisma.category.create({
             data: {
@@ -20,6 +24,9 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
     try {
+        const unauthorized = await requireAdmin();
+        if (unauthorized) return unauthorized;
+
         const body = await request.json();
         // Handle bulk update for reordering or single update
         if (Array.isArray(body)) {
@@ -69,6 +76,9 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
     try {
+        const unauthorized = await requireAdmin();
+        if (unauthorized) return unauthorized;
+
         const { searchParams } = new URL(request.url);
         const name = searchParams.get('name');
         if (!name) return NextResponse.json({ error: 'Name required' }, { status: 400 });

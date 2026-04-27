@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { downloadAndSaveIcon, saveBase64Icon, deleteIcon } from '@/lib/icon-downloader';
+import { requireAdmin } from '@/lib/auth';
 
 const getFaviconUrl = (domain: string) => `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
 
 export async function POST(request: Request) {
     try {
+        const unauthorized = await requireAdmin();
+        if (unauthorized) return unauthorized;
+
         const body = await request.json();
 
         let initialIconType = body.iconType;
@@ -92,6 +96,9 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
     try {
+        const unauthorized = await requireAdmin();
+        if (unauthorized) return unauthorized;
+
         const body = await request.json();
         // Console log strictly limited
         if (!Array.isArray(body)) {
@@ -182,6 +189,9 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
     try {
+        const unauthorized = await requireAdmin();
+        if (unauthorized) return unauthorized;
+
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');
         if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });

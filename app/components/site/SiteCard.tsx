@@ -333,8 +333,8 @@ export const SiteCard = React.memo(function SiteCard({
     // Description Limit
     const showDesc = height > 24; // Minimal threshold
 
-    // Shared Description Component
-    const Description = ({ className = '' }: { className?: string }) => (
+    // Shared Description Renderer
+    const renderDescription = (className = '') => (
         <span
             className={`opacity-70 ${hasShadow ? 'text-shadow-sm' : ''} ${className}`}
             style={{
@@ -423,7 +423,7 @@ export const SiteCard = React.memo(function SiteCard({
                                 </span>
 
                                 {showDesc && !isStandardLayout && site.desc && (
-                                    <Description className={`truncate text-xs ${isRowLayout ? 'flex-1' : 'mt-0.5'}`} />
+                                    renderDescription(`truncate text-xs ${isRowLayout ? 'flex-1' : 'mt-0.5'}`)
                                 )}
                             </div>
                         </div>

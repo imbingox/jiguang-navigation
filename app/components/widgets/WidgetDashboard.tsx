@@ -146,6 +146,8 @@ export const WidgetDashboard = React.memo(function WidgetDashboard({ isDarkMode,
         temp: null, feelsLike: null, code: null, humidity: null, windSpeed: null,
         hourly: [], aqi: null, uv: null, loading: true, error: false
     });
+    const [weatherRefreshKey, setWeatherRefreshKey] = useState(0);
+    const [localTimeZone, setLocalTimeZone] = useState('');
     const [mounted, setMounted] = useState(false);
 
     // Get config values with defaults
@@ -207,6 +209,7 @@ export const WidgetDashboard = React.memo(function WidgetDashboard({ isDarkMode,
 
     useEffect(() => {
         setMounted(true);
+        setLocalTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone || 'Local');
         setTime(new Date());
         const t = setInterval(() => setTime(new Date()), 1000);
         return () => clearInterval(t);
@@ -266,18 +269,33 @@ export const WidgetDashboard = React.memo(function WidgetDashboard({ isDarkMode,
 
     // Unified Location & Weather Fetching
     useEffect(() => {
+        const fetchJsonWithTimeout = async (url: string, timeoutMs = 8000) => {
+            const controller = new AbortController();
+            const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+
+            try {
+                const response = await fetch(url, { signal: controller.signal });
+                if (!response.ok) {
+                    throw new Error(`Request failed: ${response.status}`);
+                }
+                return response.json();
+            } finally {
+                window.clearTimeout(timeout);
+            }
+        };
+
         const fetchWeatherData = async (latitude: number, longitude: number) => {
             try {
                 // Faraday: Fetch Weather (Forest & Daily) + Air Quality (AQI) in parallel
                 // Open-Meteo Weather API
-                const weatherPromise = fetch(
+                const weatherPromise = fetchJsonWithTimeout(
                     `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m&daily=weathercode,temperature_2m_max,temperature_2m_min,uv_index_max&timezone=auto`
-                ).then(res => res.json());
+                );
 
                 // Open-Meteo Air Quality API
-                const airPromise = fetch(
+                const airPromise = fetchJsonWithTimeout(
                     `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${latitude}&longitude=${longitude}&current=us_aqi`
-                ).then(res => res.json());
+                ).catch(() => null);
 
                 const [weatherData, airData] = await Promise.all([weatherPromise, airPromise]);
 
@@ -436,7 +454,7 @@ export const WidgetDashboard = React.memo(function WidgetDashboard({ isDarkMode,
         initWeather();
         const interval = setInterval(initWeather, 600000); //Refresh every 10 minutes
         return () => clearInterval(interval);
-    }, []);
+    }, [weatherRefreshKey]);
 
     // Get next holiday countdown
     const getNextHoliday = useCallback(() => {
@@ -652,7 +670,7 @@ export const WidgetDashboard = React.memo(function WidgetDashboard({ isDarkMode,
             <div className={`flex items-center justify-between px-5 py-2.5 rounded-2xl border backdrop-blur-xl shadow-sm ${isDarkMode ? 'bg-slate-900/60 border-white/10' : 'bg-white/60 border-white/60'}`}>
                 <div className="flex items-center gap-4">
                     <Clock size={16} className="text-indigo-500" />
-                    <span className="text-sm font-medium tabular-nums">{mounted && time ? time.toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit' }) : '--:--'}</span>
+                    <span className="text-sm font-medium tabular-nums">{mounted && time ? time.toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit', timeZone: localTimeZone || undefined }) : '--:--'}</span>
                 </div>
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
@@ -710,12 +728,13 @@ export const WidgetDashboard = React.memo(function WidgetDashboard({ isDarkMode,
                             {timeMode === 'clock' && (
                                 <motion.div key="clock" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                                     <div className="text-2xl md:text-3xl font-bold tabular-nums tracking-tight leading-none mb-1 text-slate-900 dark:text-white">
-                                        {mounted && time ? time.toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                                        {mounted && time ? time.toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit', timeZone: localTimeZone || undefined }) : '--:--'}
                                         <span className={`text-base ml-1 ${isDarkMode ? 'opacity-50' : 'text-slate-500'}`}>{mounted && time ? time.getSeconds().toString().padStart(2, '0') : '00'}</span>
                                     </div>
                                     <div className="flex items-center gap-2 text-xs sm:text-sm flex-wrap">
                                         <span className={`font-medium ${isDarkMode ? 'opacity-60' : 'text-slate-600'}`}>{mounted && time ? formatDate(time) : ''}</span>
                                         <span className={`${isDarkMode ? 'opacity-40' : 'text-slate-500'}`}>{mounted && time ? getLunarDate(time) : ''}</span>
+                                        {localTimeZone && <span className={`${isDarkMode ? 'opacity-40' : 'text-slate-500'}`}>{localTimeZone}</span>}
                                         {mounted && (() => {
                                             const termInfo = getSolarTermInfo();
                                             if (termInfo.isToday) {
@@ -801,6 +820,17 @@ export const WidgetDashboard = React.memo(function WidgetDashboard({ isDarkMode,
                         <div className="flex items-center gap-1.5 mb-1">
                             <MapPin size={12} className="text-cyan-500" />
                             <span className={`text-xs font-medium truncate max-w-[100px] sm:max-w-[140px] ${isDarkMode ? 'opacity-70' : 'text-slate-700'}`}>{locationName}</span>
+                            <button
+                                type="button"
+                                title="重新获取当前位置"
+                                onClick={() => {
+                                    setWeather((prev: any) => ({ ...prev, loading: true, error: false }));
+                                    setWeatherRefreshKey(key => key + 1);
+                                }}
+                                className={`rounded-full p-1 transition-colors ${isDarkMode ? 'hover:bg-white/10 text-slate-400 hover:text-white' : 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'}`}
+                            >
+                                <RotateCcw size={10} />
+                            </button>
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="text-2xl md:text-3xl font-bold leading-none text-slate-900 dark:text-white">{weather.temp}°</span>

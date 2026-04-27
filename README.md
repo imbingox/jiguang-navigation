@@ -15,10 +15,6 @@ Built with the latest web technologies, it offers a stunning visual experience w
 
 ---
 
-![效果展示](view1.png)
-![效果展示](view2.png)
-![效果展示](view3.png)
-
 ## ✨ Features | 功能特性
 
 ### 🎨 Visual Excellence | 极致视觉体验
@@ -159,8 +155,8 @@ Built with the latest web technologies, it offers a stunning visual experience w
    ```
 
 5. **Open Browser | 打开浏览器**
-   Visit `http://localhost:3000` to see your new start page!  
-   访问 `http://localhost:3000` 查看您的新起始页！
+   Visit `http://localhost:8002` to see your new start page!  
+   访问 `http://localhost:8002` 查看您的新起始页！
 
 ---
 
@@ -172,19 +168,25 @@ Built with the latest web technologies, it offers a stunning visual experience w
    ```
 
 2. **Access | 访问**
-   Open `http://localhost:2266`.  
-   打开 `http://localhost:2266`。
+   Open `http://localhost:8002`.  
+   打开 `http://localhost:8002`。
+
+3. **Production secret | 生产密钥**
+   Create a `.env` file before starting Docker and set a strong random session secret:
+   ```bash
+   SESSION_SECRET=$(openssl rand -base64 32)
+   ```
+   公网部署前请在 `.env` 中设置强随机 `SESSION_SECRET`，否则生产环境登录会被拒绝。
 
 ---
 
 ## 📖 Usage Guide | 使用指南
 
-### Default Admin | 默认管理员
+### Default Login | 默认登录
 
-- **Username**: `admin`
 - **Password**: `123456`
-- *Please change your password immediately after the first login!*  
-  *请在首次登录后立即修改密码！*
+- *Please change the default password immediately after the first login.*  
+  *首次登录后请立即修改默认密码。*
 
 ### Key Operations | 关键操作
 

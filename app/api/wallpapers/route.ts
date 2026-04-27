@@ -2,8 +2,11 @@ import { NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
 import { writeFile, unlink, mkdir } from 'fs/promises';
 import * as path from 'path';
+import { requireAdmin } from '@/lib/auth';
 
 const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads', 'wallpapers', 'custom');
+const MAX_WALLPAPER_SIZE = 8 * 1024 * 1024;
+const ALLOWED_WALLPAPER_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
 export async function GET(request: Request) {
     try {
@@ -24,11 +27,22 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
+        const unauthorized = await requireAdmin();
+        if (unauthorized) return unauthorized;
+
         const formData = await request.formData();
         const file = formData.get('file') as unknown as File;
 
         if (!file) {
             return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+        }
+
+        if (!ALLOWED_WALLPAPER_TYPES.has(file.type)) {
+            return NextResponse.json({ error: 'Only JPG, PNG, WebP and GIF images are allowed' }, { status: 400 });
+        }
+
+        if (file.size > MAX_WALLPAPER_SIZE) {
+            return NextResponse.json({ error: 'File too large' }, { status: 400 });
         }
 
         const bytes = await file.arrayBuffer();
@@ -37,7 +51,8 @@ export async function POST(request: Request) {
         // Ensure directory exists
         await mkdir(UPLOAD_DIR, { recursive: true });
 
-        const filename = `custom-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '')}`;
+        const extension = path.extname(file.name).toLowerCase() || '.jpg';
+        const filename = `custom-${Date.now()}${extension.replace(/[^a-z0-9.]/g, '')}`;
         const filepath = path.join(UPLOAD_DIR, filename);
         const publicPath = `/uploads/wallpapers/custom/${filename}`;
 
@@ -61,6 +76,9 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
     try {
+        const unauthorized = await requireAdmin();
+        if (unauthorized) return unauthorized;
+
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');
 

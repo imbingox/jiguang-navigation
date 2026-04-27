@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { downloadAndSaveIcon } from '@/lib/icon-downloader';
 import fs from 'fs';
 import path from 'path';
+import { requireAdmin } from '@/lib/auth';
 
 
 const getFaviconUrl = (domain: string) => `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
@@ -11,6 +12,9 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
     try {
+        const unauthorized = await requireAdmin();
+        if (unauthorized) return unauthorized;
+
         const body = await request.json().catch(() => ({}));
         const { siteIds, analyze } = body; // Add analyze flag
 
@@ -40,7 +44,7 @@ export async function POST(request: Request) {
 
         for (let i = 0; i < sites.length; i += BATCH_SIZE) {
             const batch = sites.slice(i, i + BATCH_SIZE);
-            await Promise.all(batch.map(async (site) => {
+        await Promise.all(batch.map(async (site: { id: string; url: string | null; iconType: string | null; icon: string | null }) => {
                 let downloadUrl = '';
                 let shouldDownload = false;
 

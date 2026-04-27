@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { checkDatabaseConsistency } from '@/lib/db-consistency';
+import { requireAdmin } from '@/lib/auth';
 
 /**
  * GET /api/admin/db-check
@@ -7,6 +8,9 @@ import { checkDatabaseConsistency } from '@/lib/db-consistency';
  */
 export async function GET() {
     try {
+        const unauthorized = await requireAdmin();
+        if (unauthorized) return unauthorized;
+
         const report = await checkDatabaseConsistency(false);
         return NextResponse.json(report);
     } catch (error) {
@@ -21,6 +25,9 @@ export async function GET() {
  */
 export async function POST() {
     try {
+        const unauthorized = await requireAdmin();
+        if (unauthorized) return unauthorized;
+
         const report = await checkDatabaseConsistency(true);
         return NextResponse.json(report);
     } catch (error) {

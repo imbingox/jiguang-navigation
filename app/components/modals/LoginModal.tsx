@@ -4,12 +4,11 @@ import { User, AlertTriangle } from 'lucide-react';
 interface LoginModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onLogin: (u: string, p: string) => void;
+    onLogin: (password: string) => void;
     isDarkMode: boolean;
 }
 
 export function LoginModal({ isOpen, onClose, onLogin, isDarkMode }: LoginModalProps) {
-    const [u, setU] = useState('');
     const [p, setP] = useState('');
     const [err, setErr] = useState('');
     const inputClass = `w-full rounded-xl px-3 py-2.5 text-sm border transition-all focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none ${isDarkMode ? 'bg-slate-800/50 border-white/10' : 'bg-slate-50 border-slate-200'}`;
@@ -25,13 +24,16 @@ export function LoginModal({ isOpen, onClose, onLogin, isDarkMode }: LoginModalP
                     className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-white shadow-lg shadow-indigo-500/30 transform rotate-3">
                     <User size={32} /></div>
                 <h2 className="text-2xl font-bold">欢迎回来</h2><p
-                    className="text-sm opacity-50 mt-2">请登录以管理您的导航站</p></div>
+                    className="text-sm opacity-50 mt-2">请输入管理密码</p></div>
             <form onSubmit={e => {
                 e.preventDefault();
-                onLogin(u, p);
+                if (!p) {
+                    setErr('请输入密码');
+                    return;
+                }
+                setErr('');
+                onLogin(p);
             }} className="space-y-4">
-                <div className="space-y-1"><label className="text-xs font-medium opacity-60 ml-1">用户名</label><input
-                    className={inputClass} placeholder="admin" value={u} onChange={e => setU(e.target.value)} /></div>
                 <div className="space-y-1"><label className="text-xs font-medium opacity-60 ml-1">密码</label><input
                     className={inputClass} type="password" placeholder="••••••" value={p}
                     onChange={e => setP(e.target.value)} /></div>

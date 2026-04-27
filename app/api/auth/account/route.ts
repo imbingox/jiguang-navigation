@@ -1,18 +1,26 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { requireAdmin } from '@/lib/auth';
 
 export async function PUT(request: Request) {
     try {
-        const { currentUsername, currentPassword, newUsername, newPassword } = await request.json();
+        const unauthorized = await requireAdmin();
+        if (unauthorized) return unauthorized;
 
-        if (!currentUsername || !currentPassword) {
-            return NextResponse.json({ error: 'Missing current credentials' }, { status: 400 });
+        const { currentPassword, newPassword } = await request.json();
+
+        if (!currentPassword || !newPassword) {
+            return NextResponse.json({ error: 'Missing password' }, { status: 400 });
+        }
+
+        if (typeof newPassword !== 'string' || newPassword.trim().length < 6) {
+            return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 });
         }
 
         // 1. Find User
         const user = await prisma.user.findUnique({
-            where: { username: currentUsername }
+            where: { username: 'admin' }
         });
 
         if (!user) {
@@ -26,41 +34,20 @@ export async function PUT(request: Request) {
         }
 
         // 3. Prepare Updates
-        const updates: any = {};
-
-        // Update Password if provided
-        if (newPassword && newPassword.trim() !== '') {
-            updates.passwordHash = await bcrypt.hash(newPassword, 10);
-        }
-
-        // Update Username if provided and different
-        if (newUsername && newUsername.trim() !== '' && newUsername !== currentUsername) {
-            updates.username = newUsername;
-        }
-
-        if (Object.keys(updates).length === 0) {
-            return NextResponse.json({ message: 'No changes made' });
-        }
-
-        // 4. Perform Update
-        // Since we might update the ID (username), we use update
+        // 3. Update password only. The public UI uses a single admin password.
         const updatedUser = await prisma.user.update({
-            where: { username: currentUsername },
-            data: updates
+            where: { username: 'admin' },
+            data: { passwordHash: await bcrypt.hash(newPassword.trim(), 10) }
         });
 
         return NextResponse.json({
             success: true,
             username: updatedUser.username,
-            usernameChanged: !!updates.username,
-            passwordChanged: !!updates.passwordHash
+            passwordChanged: true
         });
 
     } catch (error) {
         console.error('Account update error:', error);
-        if ((error as any).code === 'P2002') {
-            return NextResponse.json({ error: 'Username already exists' }, { status: 409 });
-        }
         return NextResponse.json({ error: 'Failed to update account' }, { status: 500 });
     }
 }

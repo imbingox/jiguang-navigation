@@ -168,6 +168,7 @@ export default function AuroraNav() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isAccountSettingsModalOpen, setIsAccountSettingsModalOpen] = useState(false);
+  const [forcePasswordChange, setForcePasswordChange] = useState(false);
   const [isWallpaperManagerOpen, setIsWallpaperManagerOpen] = useState(false);
   const [editingSite, setEditingSite] = useState<any>(null);
   const [confirmingDeleteCategory, setConfirmingDeleteCategory] = useState<string | null>(null);
@@ -327,8 +328,10 @@ export default function AuroraNav() {
     initData();
 
     if (typeof window !== 'undefined') {
-      const savedLogin = localStorage.getItem('aurora_is_logged_in');
-      setIsLoggedIn(savedLogin !== null ? JSON.parse(savedLogin) : false);
+      fetch('/api/auth/session')
+        .then(res => res.ok ? res.json() : { authenticated: false })
+        .then(data => setIsLoggedIn(Boolean(data.authenticated)))
+        .catch(() => setIsLoggedIn(false));
 
       // Restore Guest Verification State (Session persistence)
       const savedGuest = sessionStorage.getItem('aurora_guest_verified');
@@ -375,7 +378,9 @@ export default function AuroraNav() {
     document.documentElement.classList.toggle('dark', isDarkMode);
   }, [isDarkMode]);
 
-  useEffect(() => localStorage.setItem('aurora_is_logged_in', JSON.stringify(isLoggedIn)), [isLoggedIn]);
+  useEffect(() => {
+    if (!isLoggedIn) localStorage.removeItem('aurora_is_logged_in');
+  }, [isLoggedIn]);
   useEffect(() => {
     document.title = appConfig.siteTitle;
   }, [appConfig.siteTitle]);
@@ -1599,21 +1604,28 @@ export default function AuroraNav() {
           onCancel={() => setConfirmingDeleteHtmlSection(null)}
           onConfirm={confirmDeleteHtmlSection} />}
         {isLoginModalOpen &&
-          <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={async (u: string, p: string) => {
+          <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={async (password: string) => {
             try {
               const res = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: u, password: p })
+                body: JSON.stringify({ password })
               });
               if (res.ok) {
+                const data = await res.json();
+                localStorage.removeItem('aurora_is_logged_in');
                 setIsLoggedIn(true);
                 setIsLoginModalOpen(false);
                 showToast('登录成功', 'success');
+                if (data.mustChangePassword) {
+                  setForcePasswordChange(true);
+                  setIsAccountSettingsModalOpen(true);
+                  showToast('请先修改默认密码', 'error');
+                }
               } else {
-                showToast('账号或密码错误', 'error');
+                showToast('密码错误', 'error');
               }
-            } catch (e) {
+            } catch {
               showToast('登录失败', 'error');
             }
           }} isDarkMode={isDarkMode} />}
@@ -1622,10 +1634,13 @@ export default function AuroraNav() {
         {isLoggedIn && isAccountSettingsModalOpen &&
           <AccountSettingsModal
             isOpen={isAccountSettingsModalOpen}
-            onClose={() => setIsAccountSettingsModalOpen(false)}
+            onClose={() => {
+              if (!forcePasswordChange) setIsAccountSettingsModalOpen(false);
+            }}
             isDarkMode={isDarkMode}
             showToast={showToast}
             onLogout={() => {
+              setForcePasswordChange(false);
               setIsLoggedIn(false);
               localStorage.removeItem('aurora_is_logged_in');
               setIsAccountSettingsModalOpen(false);
@@ -1686,9 +1701,6 @@ function Toast({ notification, onClose, isDarkMode }: any) {
 
 
 // Updated CategoryPill to support Custom Colors
-
-
-
 
 
 

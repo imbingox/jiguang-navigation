@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { assertPublicHttpUrl } from '@/lib/safe-url';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -9,21 +10,26 @@ export async function GET(request: Request) {
     }
 
     try {
-        // Ensure URL has protocol
-        const targetUrl = url.startsWith('http') ? url : `https://${url}`;
+        const targetUrl = await assertPublicHttpUrl(url);
 
         const response = await fetch(targetUrl, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             },
-            signal: AbortSignal.timeout(5000) // 5s timeout
+            redirect: 'error',
+            signal: AbortSignal.timeout(5000)
         });
 
         if (!response.ok) {
             return NextResponse.json({ error: 'Failed to fetch site' }, { status: response.status });
         }
 
-        const html = await response.text();
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.includes('text/html')) {
+            return NextResponse.json({ error: 'Unsupported content type' }, { status: 400 });
+        }
+
+        const html = (await response.text()).slice(0, 512 * 1024);
 
         // Simple regex to extract title
         const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);

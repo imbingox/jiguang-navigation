@@ -1,15 +1,24 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { requireAdmin } from '@/lib/auth';
 
 export async function PUT(request: Request) {
     try {
-        const { username, oldPassword, newPassword } = await request.json();
+        const unauthorized = await requireAdmin();
+        if (unauthorized) return unauthorized;
 
-        // Default to 'admin' if username not provided, or enforce it
-        const targetUser = username || 'admin';
+        const { oldPassword, newPassword } = await request.json();
 
-        const user = await prisma.user.findUnique({ where: { username: targetUser } });
+        if (!oldPassword || !newPassword) {
+            return NextResponse.json({ error: 'Missing password' }, { status: 400 });
+        }
+
+        if (typeof newPassword !== 'string' || newPassword.trim().length < 6) {
+            return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 });
+        }
+
+        const user = await prisma.user.findUnique({ where: { username: 'admin' } });
 
         if (!user) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -20,9 +29,9 @@ export async function PUT(request: Request) {
             return NextResponse.json({ error: 'Invalid old password' }, { status: 401 });
         }
 
-        const newHash = await bcrypt.hash(newPassword, 10);
+        const newHash = await bcrypt.hash(newPassword.trim(), 10);
         await prisma.user.update({
-            where: { username: targetUser },
+            where: { username: 'admin' },
             data: { passwordHash: newHash }
         });
 

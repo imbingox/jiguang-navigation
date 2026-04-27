@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/auth';
 
 // POST: Reset all sites' custom font settings to use global defaults
 export async function POST() {
     try {
+        const unauthorized = await requireAdmin();
+        if (unauthorized) return unauthorized;
+
         const result = await prisma.site.updateMany({
             data: {
                 titleFont: null,

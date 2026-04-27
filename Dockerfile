@@ -47,7 +47,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3000
+ENV PORT=8002
 
 # 安装 OpenSSL (Prisma 需要)
 RUN apk add --no-cache openssl
@@ -81,6 +81,6 @@ RUN chown -R nextjs:nodejs /app
 
 USER nextjs
 
-EXPOSE 3000
+EXPOSE 8002
 
 CMD ["./entrypoint.sh"]

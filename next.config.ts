@@ -8,10 +8,7 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'bing.com' },       // Bing Wallpapers
       { protocol: 'https', hostname: 'cn.bing.com' },    // CN Bing
       { protocol: 'https', hostname: 'images.weserv.nl' }, // Weserv
-      { protocol: 'http', hostname: '**' },              // Allow all http for user uploaded/custom legacy
-      { protocol: 'https', hostname: '**' },             // Allow all https for user custom
     ],
-    dangerouslyAllowSVG: true,
   },
 
   webpack: (config, { dev, isServer }) => {
