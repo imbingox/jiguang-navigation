@@ -1,27 +1,30 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import bcrypt from 'bcryptjs';
-import { setSessionCookie } from '@/lib/auth';
+import { getOwnerPasswordConfig, setSessionCookie, verifyOwnerPassword } from '@/lib/auth';
 
 export async function POST(request: Request) {
     try {
         const { password } = await request.json();
-        const user = await prisma.user.findUnique({ where: { username: 'admin' } });
 
-        if (!user || !password) {
+        if (!password || typeof password !== 'string') {
             return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
         }
 
-        const isValid = await bcrypt.compare(password, user.passwordHash);
-        if (!isValid) {
+        const config = getOwnerPasswordConfig();
+        if (!config.configured) {
+            return NextResponse.json({
+                error: '未配置编辑密码。请设置 OWNER_PASSWORD 环境变量后重启应用。'
+            }, { status: 503 });
+        }
+
+        const result = await verifyOwnerPassword(password);
+        if (!result.success) {
             return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
         }
 
-        const usesDefaultPassword = await bcrypt.compare('123456', user.passwordHash);
-        const response = NextResponse.json({ success: true, mustChangePassword: usesDefaultPassword });
-        setSessionCookie(response, user.username);
+        const response = NextResponse.json({ success: true, passwordManagedByEnv: config.managedByEnv });
+        setSessionCookie(response);
         return response;
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Login failed' }, { status: 500 });
     }
 }

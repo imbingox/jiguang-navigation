@@ -23,7 +23,7 @@ export function FontPickerModal({ isOpen, onClose }: FontPickerModalProps) {
     const searchFonts = useCallback(async (q: string) => {
         setIsLoading(true);
         try {
-            const res = await fetch(`/api/admin/fonts/online?q=${encodeURIComponent(q)}`);
+            const res = await fetch(`/api/editor/fonts/online?q=${encodeURIComponent(q)}`);
             const data = await res.json();
             setResults(data.fonts || []);
         } catch (e) {

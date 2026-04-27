@@ -23,8 +23,8 @@ export function LoginModal({ isOpen, onClose, onLogin, isDarkMode }: LoginModalP
                 <div
                     className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-white shadow-lg shadow-indigo-500/30 transform rotate-3">
                     <User size={32} /></div>
-                <h2 className="text-2xl font-bold">欢迎回来</h2><p
-                    className="text-sm opacity-50 mt-2">请输入管理密码</p></div>
+                <h2 className="text-2xl font-bold">编辑登录</h2><p
+                    className="text-sm opacity-50 mt-2">请输入编辑密码</p></div>
             <form onSubmit={e => {
                 e.preventDefault();
                 if (!p) {

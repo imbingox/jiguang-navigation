@@ -1,0 +1,39 @@
+import { NextResponse } from 'next/server';
+import { checkDatabaseConsistency } from '@/lib/db-consistency';
+import { requireAdmin } from '@/lib/auth';
+
+/**
+ * GET /api/editor/db-check
+ * Check database consistency without making changes
+ */
+export async function GET() {
+    try {
+        const unauthorized = await requireAdmin();
+        if (unauthorized) return unauthorized;
+
+        const report = await checkDatabaseConsistency(false);
+        return NextResponse.json(report);
+    } catch (error) {
+        console.error('[DB Check API] Error:', error);
+        return NextResponse.json({ error: 'Failed to check database consistency' }, { status: 500 });
+    }
+}
+
+/**
+ * POST /api/editor/db-check
+ * Check and repair database consistency issues
+ */
+export async function POST() {
+    try {
+        const unauthorized = await requireAdmin();
+        if (unauthorized) return unauthorized;
+
+        const report = await checkDatabaseConsistency(true);
+        return NextResponse.json(report);
+    } catch (error) {
+        console.error('[DB Check API] Error:', error);
+        return NextResponse.json({ error: 'Failed to repair database' }, { status: 500 });
+    }
+}
+
+export const dynamic = 'force-dynamic';

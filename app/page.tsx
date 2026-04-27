@@ -168,7 +168,6 @@ export default function AuroraNav() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isAccountSettingsModalOpen, setIsAccountSettingsModalOpen] = useState(false);
-  const [forcePasswordChange, setForcePasswordChange] = useState(false);
   const [isWallpaperManagerOpen, setIsWallpaperManagerOpen] = useState(false);
   const [editingSite, setEditingSite] = useState<any>(null);
   const [confirmingDeleteCategory, setConfirmingDeleteCategory] = useState<string | null>(null);
@@ -983,7 +982,7 @@ export default function AuroraNav() {
         for (const font of data.customFonts) {
           try {
             // Persist to DB directly via API
-            await fetch('/api/admin/fonts', {
+            await fetch('/api/editor/fonts', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(font)
@@ -1611,19 +1610,14 @@ export default function AuroraNav() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ password })
               });
+              const data = await res.json().catch(() => ({}));
               if (res.ok) {
-                const data = await res.json();
                 localStorage.removeItem('aurora_is_logged_in');
                 setIsLoggedIn(true);
                 setIsLoginModalOpen(false);
                 showToast('登录成功', 'success');
-                if (data.mustChangePassword) {
-                  setForcePasswordChange(true);
-                  setIsAccountSettingsModalOpen(true);
-                  showToast('请先修改默认密码', 'error');
-                }
               } else {
-                showToast('密码错误', 'error');
+                showToast(data.error || '密码错误', 'error');
               }
             } catch {
               showToast('登录失败', 'error');
@@ -1634,13 +1628,10 @@ export default function AuroraNav() {
         {isLoggedIn && isAccountSettingsModalOpen &&
           <AccountSettingsModal
             isOpen={isAccountSettingsModalOpen}
-            onClose={() => {
-              if (!forcePasswordChange) setIsAccountSettingsModalOpen(false);
-            }}
+            onClose={() => setIsAccountSettingsModalOpen(false)}
             isDarkMode={isDarkMode}
             showToast={showToast}
             onLogout={() => {
-              setForcePasswordChange(false);
               setIsLoggedIn(false);
               localStorage.removeItem('aurora_is_logged_in');
               setIsAccountSettingsModalOpen(false);
@@ -1701,8 +1692,6 @@ function Toast({ notification, onClose, isDarkMode }: any) {
 
 
 // Updated CategoryPill to support Custom Colors
-
-
 
 
 

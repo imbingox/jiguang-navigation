@@ -41,6 +41,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# runtime data
+/data/
+/prisma/*.db*
+
 /lib/generated/prisma
 
 # IDE
@@ -56,4 +60,3 @@ Thumbs.db
 
 # icons
 /public/uploads/icons
-

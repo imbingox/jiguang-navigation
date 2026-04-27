@@ -140,13 +140,11 @@ Built with the latest web technologies, it offers a stunning visual experience w
    npm install
    ```
 
-3. **Setup Database | 设置数据库**
+3. **Configure editor password | 配置编辑密码**
    ```bash
-   # Initialize SQLite database | 初始化 SQLite 数据库
-   npx prisma db push
-   
-   # Seed default data | 填充默认数据
-   npx prisma db seed
+   # Example: set your editor password before first start
+   # 示例：首次启动前先设置编辑密码
+   export OWNER_PASSWORD='change-this-to-a-long-random-password'
    ```
 
 4. **Run Development Server | 启动开发服务器**
@@ -174,12 +172,13 @@ Built with the latest web technologies, it offers a stunning visual experience w
        environment:
          - NODE_ENV=production
          - DATABASE_URL=file:/app/data/dev.db
+         - OWNER_PASSWORD=change-this-to-a-long-random-password
        volumes:
          - ./data:/app/data
        restart: unless-stopped
    ```
-   The container will initialize `./data/dev.db` and `./data/session.secret` automatically on first start.  
-   容器首次启动会自动初始化 `./data/dev.db` 和 `./data/session.secret`，无需手动创建。
+   The container will initialize `./data/dev.db` and `./data/session.secret` automatically on first start. If `OWNER_PASSWORD` is provided, it will also write `./data/owner.password`.  
+   容器首次启动会自动初始化 `./data/dev.db` 和 `./data/session.secret`。如果提供了 `OWNER_PASSWORD`，还会写入 `./data/owner.password`。
 
    创建 `docker-compose.yml` 后运行：
    ```bash
@@ -205,11 +204,12 @@ Built with the latest web technologies, it offers a stunning visual experience w
 
 ## 📖 Usage Guide | 使用指南
 
-### Default Login | 默认登录
+### Editor Login | 编辑登录
 
-- **Password**: `123456`
-- *Please change the default password immediately after the first login.*  
-  *首次登录后请立即修改默认密码。*
+- Set `OWNER_PASSWORD` before first start. On first successful boot, it is hashed into `./data/owner.password`.  
+  首次启动前请设置 `OWNER_PASSWORD`。应用第一次正常启动后会将其哈希保存到 `./data/owner.password`。
+- If you prefer immutable deployment config, you can set `OWNER_PASSWORD_HASH` directly instead.  
+  如果你希望密码只由部署配置管理，也可以直接设置 `OWNER_PASSWORD_HASH`。
 
 ### Key Operations | 关键操作
 

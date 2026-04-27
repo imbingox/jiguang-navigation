@@ -24,8 +24,8 @@ RUN rm -f .env .env.local .env.production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_URL="file:/app/data/dev.db"
 
-# 生成 Prisma Client (Ensure binary targets match alpine if needed, usually auto-detected)
-RUN npx prisma generate
+# 根据 schema 生成空白初始化数据库模板
+RUN DATABASE_URL="file:/app/prisma/dev.db.init" node scripts/ensure-db.mjs
 
 # 构建应用
 RUN npm run build
@@ -66,7 +66,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # 复制 Prisma 相关文件
 COPY --from=builder --chown=nextjs:nodejs /app/prisma/schema.prisma ./prisma/
-COPY --from=builder --chown=nextjs:nodejs /app/prisma/dev.db ./prisma/dev.db.init
+COPY --from=builder --chown=nextjs:nodejs /app/prisma/dev.db.init ./prisma/dev.db.init
 # Standalone build might NOT bundle all prisma engines or generated client files depending on config.
 # Ideally .next/standalone includes node_modules which has client.
 # But we usually copy .prisma manually to be safe or if using custom output.

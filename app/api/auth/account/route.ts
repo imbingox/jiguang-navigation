@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import bcrypt from 'bcryptjs';
-import { requireAdmin } from '@/lib/auth';
+import { requireAdmin, updateOwnerPassword } from '@/lib/auth';
 
 export async function PUT(request: Request) {
     try {
@@ -18,34 +16,30 @@ export async function PUT(request: Request) {
             return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 });
         }
 
-        // 1. Find User
-        const user = await prisma.user.findUnique({
-            where: { username: 'admin' }
-        });
+        const result = await updateOwnerPassword(currentPassword, newPassword);
 
-        if (!user) {
-            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        if (!result.success) {
+            if (result.reason === 'missing') {
+                return NextResponse.json({
+                    error: '未配置编辑密码。请先设置 OWNER_PASSWORD 环境变量并重启。'
+                }, { status: 503 });
+            }
+
+            if (result.reason === 'managed-by-env') {
+                return NextResponse.json({
+                    error: '当前编辑密码由环境变量管理，不能在页面里修改。'
+                }, { status: 400 });
+            }
+
+            if (result.reason === 'invalid-current-password') {
+                return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
+            }
         }
-
-        // 2. Verify Current Password
-        const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
-        if (!isValid) {
-            return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
-        }
-
-        // 3. Prepare Updates
-        // 3. Update password only. The public UI uses a single admin password.
-        const updatedUser = await prisma.user.update({
-            where: { username: 'admin' },
-            data: { passwordHash: await bcrypt.hash(newPassword.trim(), 10) }
-        });
 
         return NextResponse.json({
             success: true,
-            username: updatedUser.username,
-            passwordChanged: true
+            passwordChanged: true,
         });
-
     } catch (error) {
         console.error('Account update error:', error);
         return NextResponse.json({ error: 'Failed to update account' }, { status: 500 });

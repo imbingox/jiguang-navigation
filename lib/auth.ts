@@ -3,23 +3,44 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import bcrypt from 'bcryptjs';
+import { fileURLToPath } from 'url';
+import Database from 'better-sqlite3';
 
 const SESSION_COOKIE = 'aurora_session';
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
+const SESSION_SUBJECT = 'owner';
+const DEFAULT_DATABASE_URL = 'file:data/dev.db';
 
 let cachedSessionSecret: string | null = null;
 
-function getSessionSecretFile() {
-    if (process.env.SESSION_SECRET_FILE) return process.env.SESSION_SECRET_FILE;
+function getDatabaseFilePath() {
+    const dbUrl = process.env.DATABASE_URL || DEFAULT_DATABASE_URL;
 
-    const dbUrl = process.env.DATABASE_URL;
-    if (dbUrl?.startsWith('file:')) {
-        const rawPath = dbUrl.slice('file:'.length);
-        const dbPath = rawPath.startsWith('/') ? rawPath : path.resolve(process.cwd(), rawPath);
-        return path.join(path.dirname(dbPath), 'session.secret');
+    if (dbUrl.startsWith('file:///')) {
+        return fileURLToPath(dbUrl);
     }
 
-    return path.join(process.cwd(), 'data', 'session.secret');
+    if (dbUrl.startsWith('file:')) {
+        const rawPath = dbUrl.slice('file:'.length);
+        return path.isAbsolute(rawPath) ? rawPath : path.resolve(process.cwd(), rawPath);
+    }
+
+    return path.resolve(process.cwd(), 'data', 'dev.db');
+}
+
+function getDataDirectory() {
+    return path.dirname(getDatabaseFilePath());
+}
+
+function getSessionSecretFile() {
+    if (process.env.SESSION_SECRET_FILE) return process.env.SESSION_SECRET_FILE;
+    return path.join(getDataDirectory(), 'session.secret');
+}
+
+function getOwnerPasswordFile() {
+    if (process.env.OWNER_PASSWORD_FILE) return process.env.OWNER_PASSWORD_FILE;
+    return path.join(getDataDirectory(), 'owner.password');
 }
 
 function getSessionSecret() {
@@ -55,6 +76,88 @@ function getSessionSecret() {
     }
 }
 
+function readPasswordFile(filePath: string) {
+    if (!fs.existsSync(filePath)) return null;
+    const hash = fs.readFileSync(filePath, 'utf8').trim();
+    return hash || null;
+}
+
+function writePasswordFile(filePath: string, passwordHash: string) {
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, `${passwordHash}\n`, { mode: 0o600 });
+}
+
+function bootstrapOwnerPassword() {
+    const bootstrapPassword = process.env.OWNER_PASSWORD?.trim();
+    if (!bootstrapPassword) return null;
+
+    const filePath = getOwnerPasswordFile();
+    const passwordHash = bcrypt.hashSync(bootstrapPassword, 10);
+    writePasswordFile(filePath, passwordHash);
+
+    return {
+        hash: passwordHash,
+        managedByEnv: false,
+        filePath,
+    };
+}
+
+function getLegacyOwnerPassword() {
+    const dbPath = getDatabaseFilePath();
+    if (!fs.existsSync(dbPath)) return null;
+
+    let db: Database.Database | null = null;
+
+    try {
+        db = new Database(dbPath, { readonly: true, fileMustExist: true });
+        const userTable = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'User'").get();
+        if (!userTable) return null;
+
+        const row = db.prepare<{ username: string }, { passwordHash?: string }>(
+            'SELECT passwordHash FROM User WHERE username = @username LIMIT 1'
+        ).get({ username: 'admin' });
+        const legacyHash = row?.passwordHash?.trim();
+        if (!legacyHash) return null;
+
+        const filePath = getOwnerPasswordFile();
+        writePasswordFile(filePath, legacyHash);
+
+        return {
+            hash: legacyHash,
+            managedByEnv: false,
+            filePath,
+        };
+    } catch (error) {
+        console.error('Failed to migrate legacy owner password:', error);
+        return null;
+    } finally {
+        db?.close();
+    }
+}
+
+function getOwnerPasswordState() {
+    const envHash = process.env.OWNER_PASSWORD_HASH?.trim();
+    if (envHash) {
+        return {
+            hash: envHash,
+            managedByEnv: true,
+            filePath: null as string | null,
+        };
+    }
+
+    const filePath = getOwnerPasswordFile();
+    const storedHash = readPasswordFile(filePath);
+    if (storedHash) {
+        return {
+            hash: storedHash,
+            managedByEnv: false,
+            filePath,
+        };
+    }
+
+    return getLegacyOwnerPassword() || bootstrapOwnerPassword();
+}
+
 function sign(value: string) {
     return crypto.createHmac('sha256', getSessionSecret()).update(value).digest('base64url');
 }
@@ -64,8 +167,54 @@ export function isWeakSessionSecret() {
     return process.env.NODE_ENV === 'production' && Boolean(envSecret) && envSecret === 'change-me-in-production';
 }
 
-export function createSessionValue(username: string) {
-    const payload = Buffer.from(JSON.stringify({ username, iat: Date.now() })).toString('base64url');
+export function getOwnerPasswordConfig() {
+    const state = getOwnerPasswordState();
+
+    return {
+        configured: Boolean(state),
+        managedByEnv: Boolean(state?.managedByEnv),
+    };
+}
+
+export async function verifyOwnerPassword(password: string) {
+    const state = getOwnerPasswordState();
+
+    if (!state) {
+        return { success: false, reason: 'missing' as const };
+    }
+
+    const success = await bcrypt.compare(password, state.hash);
+    const reason = success ? null : 'invalid';
+    return {
+        success,
+        reason,
+    };
+}
+
+export async function updateOwnerPassword(currentPassword: string, newPassword: string) {
+    const state = getOwnerPasswordState();
+
+    if (!state) {
+        return { success: false, reason: 'missing' as const };
+    }
+
+    if (state.managedByEnv || !state.filePath) {
+        return { success: false, reason: 'managed-by-env' as const };
+    }
+
+    const isValid = await bcrypt.compare(currentPassword, state.hash);
+    if (!isValid) {
+        return { success: false, reason: 'invalid-current-password' as const };
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword.trim(), 10);
+    writePasswordFile(state.filePath, passwordHash);
+
+    return { success: true, reason: null };
+}
+
+export function createSessionValue(subject: string = SESSION_SUBJECT) {
+    const payload = Buffer.from(JSON.stringify({ subject, iat: Date.now() })).toString('base64url');
     return `${payload}.${sign(payload)}`;
 }
 
@@ -75,10 +224,10 @@ export function verifySessionValue(value?: string) {
     if (!payload || !signature || signature !== sign(payload)) return null;
 
     try {
-        const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as { username?: string; iat?: number };
-        if (!data.username || !data.iat) return null;
+        const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as { subject?: string; iat?: number };
+        if (!data.subject || !data.iat) return null;
         if (Date.now() - data.iat > SESSION_MAX_AGE * 1000) return null;
-        return { username: data.username };
+        return { subject: data.subject };
     } catch {
         return null;
     }
@@ -98,10 +247,10 @@ export async function requireAdmin() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 }
 
-export function setSessionCookie(response: NextResponse, username: string) {
+export function setSessionCookie(response: NextResponse, subject: string = SESSION_SUBJECT) {
     response.cookies.set({
         name: SESSION_COOKIE,
-        value: createSessionValue(username),
+        value: createSessionValue(subject),
         httpOnly: true,
         sameSite: 'lax',
         secure: process.env.NODE_ENV === 'production',

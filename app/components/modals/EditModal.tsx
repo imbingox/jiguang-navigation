@@ -335,7 +335,7 @@ export function EditModal({ site, categories, sites, isDarkMode, onClose, onSave
                                         </div>
                                         <div className="flex flex-col">
                                             <span className="text-sm font-medium">隐藏此站点</span>
-                                            <span className="text-[10px] opacity-50">开启后仅对管理员可见 (变暗显示)</span>
+                                            <span className="text-[10px] opacity-50">开启后仅登录编辑者可见 (变暗显示)</span>
                                         </div>
                                     </div>
                                     <div

@@ -201,7 +201,7 @@ export function Header({
                                 <ActionButton icon={Settings} onClick={() => setIsSettingsOpen(!isSettingsOpen)}
                                     tooltip="设置" active={isSettingsOpen} isDarkMode={isDarkMode} />
                                 <ActionButton icon={User} onClick={() => setIsAccountSettingsModalOpen(true)}
-                                    tooltip="账号设置" isDarkMode={isDarkMode} />
+                                    tooltip="密码设置" isDarkMode={isDarkMode} />
                             </>
                         )}
                         <ActionButton icon={isLoggedIn ? LogOut : LogIn}

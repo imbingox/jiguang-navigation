@@ -31,7 +31,7 @@ export function FontProvider({ children }: { children: ReactNode }) {
     // Fetch custom fonts on mount
     const fetchFonts = useCallback(async () => {
         try {
-            const res = await fetch('/api/admin/fonts');
+            const res = await fetch('/api/editor/fonts');
             if (res.ok) {
                 const data = await res.json();
                 setCustomFonts(data.map((f: any) => ({ ...f, isCustom: true })));
@@ -53,7 +53,7 @@ export function FontProvider({ children }: { children: ReactNode }) {
     // Add a font to library
     const addFont = async (font: { name: string, family: string }) => {
         try {
-            const res = await fetch('/api/admin/fonts', {
+            const res = await fetch('/api/editor/fonts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(font)
@@ -71,7 +71,7 @@ export function FontProvider({ children }: { children: ReactNode }) {
     // Remove a font
     const removeFont = async (id: string) => {
         try {
-            const res = await fetch(`/api/admin/fonts/${id}`, { method: 'DELETE' });
+            const res = await fetch(`/api/editor/fonts/${id}`, { method: 'DELETE' });
             if (res.ok) {
                 await fetchFonts(); // Refresh list globally
                 return true;

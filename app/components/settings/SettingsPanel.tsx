@@ -174,7 +174,7 @@ export function SettingsPanel({
         // Call API to analyze
         try {
             const validIds = validSites.map((s: any) => s.id);
-            const res = await fetch('/api/admin/cache-icons', {
+            const res = await fetch('/api/editor/cache-icons', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ siteIds: validIds, analyze: true })
@@ -222,7 +222,7 @@ export function SettingsPanel({
                 const batch = validSites.slice(i, i + BATCH_SIZE);
                 const batchIds = batch.map((s: any) => s.id);
 
-                const res = await fetch('/api/admin/cache-icons', {
+                const res = await fetch('/api/editor/cache-icons', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ siteIds: batchIds })
@@ -1814,7 +1814,7 @@ export function SettingsPanel({
                                                 <div className="flex gap-2">
                                                     <input
                                                         type="password"
-                                                        placeholder="设置独立访问密码 (留空则使用管理员密码)"
+                                                        placeholder="设置独立访问密码 (留空则使用编辑密码)"
                                                         className={`flex-1 h-10 w-full rounded-md border px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${isDarkMode ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'}`}
                                                         id="private-pwd-input"
                                                         autoComplete="new-password"
@@ -1849,7 +1849,7 @@ export function SettingsPanel({
                                                     }}>更新</Button>
                                                 </div>
                                                 <p className="text-[10px] opacity-60">
-                                                    注意：设置为空将清除独立密码，恢复使用管理员密码验证。
+                                                    注意：设置为空将清除独立密码，恢复使用编辑密码验证。
                                                 </p>
                                             </div>
                                         </div>
@@ -2006,7 +2006,7 @@ export function SettingsPanel({
                                 setIsResetFontsModalOpen(false);
                                 try {
                                     showToast('正在重置...', 'loading');
-                                    const res = await fetch('/api/admin/reset-fonts', { method: 'POST' });
+                                    const res = await fetch('/api/editor/reset-fonts', { method: 'POST' });
                                     if (res.ok) {
                                         const data = await res.json();
                                         const sitesRes = await fetch('/api/init');

@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth';
+import { getOwnerPasswordConfig, getSession } from '@/lib/auth';
 
 export async function GET() {
     const session = await getSession();
-    return NextResponse.json({ authenticated: Boolean(session), username: session?.username || null });
+    const passwordConfig = getOwnerPasswordConfig();
+
+    return NextResponse.json({
+        authenticated: Boolean(session),
+        subject: session?.subject || null,
+        passwordConfigured: passwordConfig.configured,
+        passwordManagedByEnv: passwordConfig.managedByEnv,
+    });
 }
 
 export const dynamic = 'force-dynamic';

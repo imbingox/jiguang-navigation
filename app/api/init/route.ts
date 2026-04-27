@@ -1,33 +1,23 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkDatabaseConsistency } from '@/lib/db-consistency';
+import { getOwnerPasswordConfig } from '@/lib/auth';
 
-// Track if consistency check has run this session (avoid repeated checks on every request)
 let consistencyCheckDone = false;
 
 export async function GET() {
     try {
-        console.log('[Init API] Loading data...');
-        console.log('[Init API] DATABASE_URL:', process.env.DATABASE_URL);
-
-        // Run consistency check once per server session (auto-repair orphaned sites)
         if (!consistencyCheckDone) {
-            console.log('[Init API] Running one-time database consistency check...');
             await checkDatabaseConsistency(true);
             consistencyCheckDone = true;
         }
 
-        const [sites, categories, settings, user] = await Promise.all([
+        const [sites, categories, settings] = await Promise.all([
             prisma.site.findMany({ orderBy: { order: 'asc' } }),
             prisma.category.findMany({ orderBy: { order: 'asc' } }),
-            prisma.globalSettings.findUnique({ where: { id: 1 } }),
-            prisma.user.findUnique({ where: { username: 'admin' } })
+            prisma.globalSettings.findUnique({ where: { id: 1 } })
         ]);
 
-        console.log('[Init API] Settings raw:', settings ? 'found' : 'null');
-        console.log('[Init API] Settings config:', settings?.config?.substring(0, 200));
-
-        // Parse JSON fields in settings
         const parsedSettings = settings ? {
             layout: JSON.parse(settings.layout),
             config: JSON.parse(settings.config),
@@ -35,13 +25,6 @@ export async function GET() {
             searchEngine: settings.searchEngine
         } : null;
 
-        if (parsedSettings && parsedSettings.layout) {
-            console.log('[Init API] Loaded layout bgUrl:', parsedSettings.layout.bgUrl);
-        }
-
-        console.log('[Init API] Parsed privateMode:', parsedSettings?.config?.privateMode);
-
-        // [Fix] Auto-inject latest Bing Wallpaper for offline support (Cross-browser fix)
         if (parsedSettings && parsedSettings.layout && parsedSettings.layout.bgType === 'bing') {
             const latestBing = await prisma.wallpaper.findFirst({
                 where: { type: 'bing' },
@@ -56,7 +39,7 @@ export async function GET() {
             sites,
             categories,
             settings: parsedSettings,
-            hasUser: !!user
+            authConfigured: getOwnerPasswordConfig().configured,
         });
     } catch (error) {
         console.error('[Init API] Error:', error);

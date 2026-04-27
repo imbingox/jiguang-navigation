@@ -18,8 +18,8 @@ export function AccountSettingsModal({ isOpen, onClose, isDarkMode, showToast, o
                     <div className="w-12 h-12 bg-indigo-500/10 text-indigo-500 rounded-xl flex items-center justify-center mx-auto mb-3">
                         <User size={24} />
                     </div>
-                    <h2 className="text-xl font-bold">账号设置</h2>
-                    <p className={`text-xs mt-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>修改管理密码</p>
+                    <h2 className="text-xl font-bold">密码设置</h2>
+                    <p className={`text-xs mt-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>修改编辑密码</p>
                 </div>
 
                 <form onSubmit={async (e) => {
