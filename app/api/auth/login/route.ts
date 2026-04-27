@@ -1,14 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-import { isWeakSessionSecret, setSessionCookie } from '@/lib/auth';
+import { setSessionCookie } from '@/lib/auth';
 
 export async function POST(request: Request) {
     try {
-        if (isWeakSessionSecret()) {
-            return NextResponse.json({ error: 'SESSION_SECRET is required in production' }, { status: 500 });
-        }
-
         const { password } = await request.json();
         const user = await prisma.user.findUnique({ where: { username: 'admin' } });
 

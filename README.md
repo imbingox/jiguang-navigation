@@ -4,8 +4,8 @@
 ![Next.js](https://img.shields.io/badge/Next.js-14-black)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-38B2AC)
 ![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748)
-![GitHub stars](https://img.shields.io/github/stars/sxt2204/jiguang-navigation.svg?style=social)
-![GitHub forks](https://img.shields.io/github/forks/sxt2204/jiguang-navigation.svg?style=social)
+![GitHub stars](https://img.shields.io/github/stars/imbingox/jiguang-navigation.svg?style=social)
+![GitHub forks](https://img.shields.io/github/forks/imbingox/jiguang-navigation.svg?style=social)
 
 **JiGuang Navigation is a modern, highly customizable, and privacy-focused personal start page.**  
 **极光导航是一款现代、高度可定制且注重隐私的个人起始页。**
@@ -131,7 +131,7 @@ Built with the latest web technologies, it offers a stunning visual experience w
 
 1. **Clone the repository | 克隆仓库**
    ```bash
-   git clone https://github.com/sxt2204/jiguang-navigation.git
+   git clone https://github.com/imbingox/jiguang-navigation.git
    cd jiguang-navigation
    ```
 
@@ -162,48 +162,44 @@ Built with the latest web technologies, it offers a stunning visual experience w
 
 ## 🐳 Docker Deployment | Docker 部署
 
-1. **Production secret | 生产密钥**
-   Create a `.env` file before starting Docker and set a strong random session secret:
-   ```bash
-   echo "SESSION_SECRET=$(openssl rand -base64 32)" > .env
-   ```
-   公网部署前请在 `.env` 中设置强随机 `SESSION_SECRET`，否则生产环境登录会被拒绝。
-
-2. **Run prebuilt GHCR image | 使用 GHCR 预构建镜像**
+1. **Run prebuilt GHCR image | 使用 GHCR 预构建镜像**
    Create `docker-compose.yml`:
    ```yaml
    services:
      jg_nav:
-       image: ghcr.io/sxt2204/jiguang-navigation:latest
+       image: ghcr.io/imbingox/jiguang-navigation:latest
        container_name: jg_nav
        ports:
          - "8002:8002"
        environment:
          - NODE_ENV=production
          - DATABASE_URL=file:/app/data/dev.db
-         - SESSION_SECRET=${SESSION_SECRET:?set SESSION_SECRET in .env}
        volumes:
-         - data:/app/data
+         - ./data:/app/data
        restart: unless-stopped
-
-   volumes:
-     data:
    ```
+   The container will initialize `./data/dev.db` and `./data/session.secret` automatically on first start.  
+   容器首次启动会自动初始化 `./data/dev.db` 和 `./data/session.secret`，无需手动创建。
+
    创建 `docker-compose.yml` 后运行：
    ```bash
    docker compose up -d
    ```
-   The default image is `ghcr.io/sxt2204/jiguang-navigation:latest`.  
-   默认镜像为 `ghcr.io/sxt2204/jiguang-navigation:latest`。
+   The default image is `ghcr.io/imbingox/jiguang-navigation:latest`.  
+   默认镜像为 `ghcr.io/imbingox/jiguang-navigation:latest`。
 
-3. **Build locally instead | 本地自行构建**
+2. **Build locally instead | 本地自行构建**
    ```bash
    docker compose up -d --build
    ```
 
-4. **Access | 访问**
+3. **Access | 访问**
    Open `http://localhost:8002`.  
    打开 `http://localhost:8002`。
+
+4. **Advanced: custom session secret | 高级：自定义会话密钥**
+   By default, the app creates a strong random secret at `./data/session.secret`. For multi-instance deployments, set the same `SESSION_SECRET` on every instance.  
+   默认会在 `./data/session.secret` 自动生成强随机密钥。多实例部署时，请为所有实例设置同一个 `SESSION_SECRET`。
 
 ---
 

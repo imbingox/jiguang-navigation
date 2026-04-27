@@ -1,12 +1,58 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 
 const SESSION_COOKIE = 'aurora_session';
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 
+let cachedSessionSecret: string | null = null;
+
+function getSessionSecretFile() {
+    if (process.env.SESSION_SECRET_FILE) return process.env.SESSION_SECRET_FILE;
+
+    const dbUrl = process.env.DATABASE_URL;
+    if (dbUrl?.startsWith('file:')) {
+        const rawPath = dbUrl.slice('file:'.length);
+        const dbPath = rawPath.startsWith('/') ? rawPath : path.resolve(process.cwd(), rawPath);
+        return path.join(path.dirname(dbPath), 'session.secret');
+    }
+
+    return path.join(process.cwd(), 'data', 'session.secret');
+}
+
 function getSessionSecret() {
-    return process.env.SESSION_SECRET || process.env.AUTH_SECRET || 'change-me-in-production';
+    if (process.env.SESSION_SECRET || process.env.AUTH_SECRET) {
+        return process.env.SESSION_SECRET || process.env.AUTH_SECRET || '';
+    }
+
+    if (cachedSessionSecret) return cachedSessionSecret;
+
+    try {
+        const sessionSecretFile = getSessionSecretFile();
+
+        if (fs.existsSync(sessionSecretFile)) {
+            const existingSecret = fs.readFileSync(sessionSecretFile, 'utf8').trim();
+            if (existingSecret) {
+                cachedSessionSecret = existingSecret;
+                return cachedSessionSecret;
+            }
+        }
+
+        const generatedSecret = crypto.randomBytes(32).toString('base64url');
+        fs.mkdirSync(path.dirname(sessionSecretFile), { recursive: true });
+        fs.writeFileSync(sessionSecretFile, `${generatedSecret}\n`, { mode: 0o600 });
+        cachedSessionSecret = generatedSecret;
+        return cachedSessionSecret;
+    } catch (error) {
+        if (process.env.NODE_ENV === 'production') {
+            console.error('Failed to initialize session secret:', error);
+        }
+
+        cachedSessionSecret = crypto.randomBytes(32).toString('base64url');
+        return cachedSessionSecret;
+    }
 }
 
 function sign(value: string) {
@@ -14,7 +60,8 @@ function sign(value: string) {
 }
 
 export function isWeakSessionSecret() {
-    return process.env.NODE_ENV === 'production' && getSessionSecret() === 'change-me-in-production';
+    const envSecret = process.env.SESSION_SECRET || process.env.AUTH_SECRET;
+    return process.env.NODE_ENV === 'production' && Boolean(envSecret) && envSecret === 'change-me-in-production';
 }
 
 export function createSessionValue(username: string) {
