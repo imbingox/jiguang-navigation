@@ -162,21 +162,48 @@ Built with the latest web technologies, it offers a stunning visual experience w
 
 ## 🐳 Docker Deployment | Docker 部署
 
-1. **Build & Run | 构建并运行**
-   ```bash
-   docker-compose up -d --build
-   ```
-
-2. **Access | 访问**
-   Open `http://localhost:8002`.  
-   打开 `http://localhost:8002`。
-
-3. **Production secret | 生产密钥**
+1. **Production secret | 生产密钥**
    Create a `.env` file before starting Docker and set a strong random session secret:
    ```bash
-   SESSION_SECRET=$(openssl rand -base64 32)
+   echo "SESSION_SECRET=$(openssl rand -base64 32)" > .env
    ```
    公网部署前请在 `.env` 中设置强随机 `SESSION_SECRET`，否则生产环境登录会被拒绝。
+
+2. **Run prebuilt GHCR image | 使用 GHCR 预构建镜像**
+   Create `docker-compose.yml`:
+   ```yaml
+   services:
+     jg_nav:
+       image: ghcr.io/sxt2204/jiguang-navigation:latest
+       container_name: jg_nav
+       ports:
+         - "8002:8002"
+       environment:
+         - NODE_ENV=production
+         - DATABASE_URL=file:/app/data/dev.db
+         - SESSION_SECRET=${SESSION_SECRET:?set SESSION_SECRET in .env}
+       volumes:
+         - data:/app/data
+       restart: unless-stopped
+
+   volumes:
+     data:
+   ```
+   创建 `docker-compose.yml` 后运行：
+   ```bash
+   docker compose up -d
+   ```
+   The default image is `ghcr.io/sxt2204/jiguang-navigation:latest`.  
+   默认镜像为 `ghcr.io/sxt2204/jiguang-navigation:latest`。
+
+3. **Build locally instead | 本地自行构建**
+   ```bash
+   docker compose up -d --build
+   ```
+
+4. **Access | 访问**
+   Open `http://localhost:8002`.  
+   打开 `http://localhost:8002`。
 
 ---
 

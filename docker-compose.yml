@@ -1,7 +1,6 @@
 services:
   jg_nav:
-    image: jg_nav:latest
-    build: .
+    image: ghcr.io/sxt2204/jiguang-navigation:latest
     container_name: jg_nav
     ports:
       - "8002:8002"
