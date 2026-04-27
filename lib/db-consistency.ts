@@ -8,6 +8,9 @@
 
 import { prisma } from '@/lib/prisma';
 
+type SiteRecord = Awaited<ReturnType<typeof prisma.site.findMany>>[number];
+type CategoryRecord = Awaited<ReturnType<typeof prisma.category.findMany>>[number];
+
 export interface ConsistencyReport {
     orphanedSites: number;
     orphanedCategories: number;
@@ -30,26 +33,26 @@ export async function checkDatabaseConsistency(autoRepair: boolean = false): Pro
 
     try {
         // 1. Get all sites and folders
-        const sites = await prisma.site.findMany();
-        const folders = sites.filter(s => s.type === 'folder');
-        const folderIds = new Set(folders.map(f => f.id));
+        const sites: SiteRecord[] = await prisma.site.findMany();
+        const folders = sites.filter((site) => site.type === 'folder');
+        const folderIds = new Set(folders.map((folder) => folder.id));
 
         // 2. Get all category names
-        const categories = await prisma.category.findMany();
-        const categoryNames = new Set(categories.map(c => c.name));
+        const categories: CategoryRecord[] = await prisma.category.findMany();
+        const categoryNames = new Set(categories.map((category) => category.name));
 
         // 3. Find orphaned sites (parentId points to non-existent folder)
-        const orphanedSites = sites.filter(s => s.parentId && !folderIds.has(s.parentId));
+        const orphanedSites = sites.filter((site) => site.parentId && !folderIds.has(site.parentId));
 
         if (orphanedSites.length > 0) {
             report.orphanedSites = orphanedSites.length;
-            const orphanParentIds = [...new Set(orphanedSites.map(s => s.parentId))];
+            const orphanParentIds = [...new Set(orphanedSites.map((site) => site.parentId))];
             report.details.push(`Found ${orphanedSites.length} orphaned sites referencing ${orphanParentIds.length} deleted folder(s)`);
 
             if (autoRepair) {
                 // Fix: Set parentId to null
                 await prisma.site.updateMany({
-                    where: { id: { in: orphanedSites.map(s => s.id) } },
+                    where: { id: { in: orphanedSites.map((site) => site.id) } },
                     data: { parentId: null }
                 });
                 report.details.push(`Repaired: Moved ${orphanedSites.length} orphaned sites to root level`);
@@ -57,18 +60,18 @@ export async function checkDatabaseConsistency(autoRepair: boolean = false): Pro
         }
 
         // 4. Find sites with non-existent category references
-        const orphanedCatSites = sites.filter(s => s.category && !categoryNames.has(s.category));
+        const orphanedCatSites = sites.filter((site) => site.category && !categoryNames.has(site.category));
 
         if (orphanedCatSites.length > 0) {
             report.orphanedCategories = orphanedCatSites.length;
-            const orphanCats = [...new Set(orphanedCatSites.map(s => s.category))];
+            const orphanCats = [...new Set(orphanedCatSites.map((site) => site.category))];
             report.details.push(`Found ${orphanedCatSites.length} sites referencing ${orphanCats.length} non-existent category(s): ${orphanCats.join(', ')}`);
 
             if (autoRepair && categories.length > 0) {
                 // Fix: Move to first available category
                 const defaultCategory = categories[0].name;
                 await prisma.site.updateMany({
-                    where: { id: { in: orphanedCatSites.map(s => s.id) } },
+                    where: { id: { in: orphanedCatSites.map((site) => site.id) } },
                     data: { category: defaultCategory }
                 });
                 report.details.push(`Repaired: Moved ${orphanedCatSites.length} sites to category "${defaultCategory}"`);
