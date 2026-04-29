@@ -160,7 +160,22 @@ Built with the latest web technologies, it offers a stunning visual experience w
 
 ## 🐳 Docker Deployment | Docker 部署
 
-1. **Run prebuilt GHCR image | 使用 GHCR 预构建镜像**
+1. **Configure editor password | 配置编辑密码**
+   The editor login password is required. Set one of the following before the first start:  
+   编辑登录密码是必需配置。首次启动前请设置以下任意一种方式：
+
+   - `OWNER_PASSWORD`: plain text bootstrap password. The app hashes it into `./data/owner.password` on first successful boot.  
+     `OWNER_PASSWORD`：明文初始化密码。应用首次正常启动后会将其哈希保存到 `./data/owner.password`。
+   - `OWNER_PASSWORD_HASH`: bcrypt hash managed entirely by deployment config.  
+     `OWNER_PASSWORD_HASH`：直接提供 bcrypt 哈希，适合完全由部署配置管理密码。
+
+   Example `.env` file next to `docker-compose.yml`:  
+   可在 `docker-compose.yml` 同目录创建 `.env` 示例：
+   ```env
+   OWNER_PASSWORD=change-this-to-a-long-random-password
+   ```
+
+2. **Run prebuilt GHCR image | 使用 GHCR 预构建镜像**
    Create `docker-compose.yml`:
    ```yaml
    services:
@@ -172,13 +187,20 @@ Built with the latest web technologies, it offers a stunning visual experience w
        environment:
          - NODE_ENV=production
          - DATABASE_URL=file:/app/data/dev.db
-         - OWNER_PASSWORD=change-this-to-a-long-random-password
+         - OWNER_PASSWORD=${OWNER_PASSWORD}
        volumes:
          - ./data:/app/data
        restart: unless-stopped
    ```
-   The container will initialize `./data/dev.db` and `./data/session.secret` automatically on first start. If `OWNER_PASSWORD` is provided, it will also write `./data/owner.password`.  
-   容器首次启动会自动初始化 `./data/dev.db` 和 `./data/session.secret`。如果提供了 `OWNER_PASSWORD`，还会写入 `./data/owner.password`。
+   The container will initialize `./data/dev.db`, `./data/session.secret`, and `./data/owner.password` automatically on first start.  
+   容器首次启动会自动初始化 `./data/dev.db`、`./data/session.secret` 和 `./data/owner.password`。
+
+   If logs show `SQLITE_CANTOPEN: unable to open database file`, the host `./data` directory is usually not writable by the container user. Rebuild/pull the latest image, or fix the host directory permissions manually:  
+   如果日志出现 `SQLITE_CANTOPEN: unable to open database file`，通常是宿主机 `./data` 目录对容器用户不可写。请重新构建/拉取最新镜像，或手动修复宿主机目录权限：
+   ```bash
+   sudo chown -R 1001:1001 ./data
+   sudo chmod -R u+rwX,g+rwX ./data
+   ```
 
    创建 `docker-compose.yml` 后运行：
    ```bash
@@ -187,16 +209,16 @@ Built with the latest web technologies, it offers a stunning visual experience w
    The default image is `ghcr.io/imbingox/jiguang-navigation:latest`.  
    默认镜像为 `ghcr.io/imbingox/jiguang-navigation:latest`。
 
-2. **Build locally instead | 本地自行构建**
+3. **Build locally instead | 本地自行构建**
    ```bash
    docker compose up -d --build
    ```
 
-3. **Access | 访问**
+4. **Access | 访问**
    Open `http://localhost:8002`.  
    打开 `http://localhost:8002`。
 
-4. **Advanced: custom session secret | 高级：自定义会话密钥**
+5. **Advanced: custom session secret | 高级：自定义会话密钥**
    By default, the app creates a strong random secret at `./data/session.secret`. For multi-instance deployments, set the same `SESSION_SECRET` on every instance.  
    默认会在 `./data/session.secret` 自动生成强随机密钥。多实例部署时，请为所有实例设置同一个 `SESSION_SECRET`。
 

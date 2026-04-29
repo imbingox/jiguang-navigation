@@ -49,8 +49,8 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=8002
 
-# 安装 OpenSSL (Prisma 需要)
-RUN apk add --no-cache openssl
+# 安装 OpenSSL (Prisma 需要) 和 su-exec (启动后降权运行)
+RUN apk add --no-cache openssl su-exec
 
 # 创建非 root 用户
 RUN addgroup --system --gid 1001 nodejs
@@ -76,10 +76,8 @@ COPY --from=builder /app/entrypoint.sh ./entrypoint.sh
 # Fix Windows CRLF
 RUN sed -i 's/\r$//' ./entrypoint.sh && chmod +x ./entrypoint.sh
 
-# 设置权限
+# 设置权限。启动脚本需要以 root 修复宿主机挂载目录权限，随后用 su-exec 降权运行应用。
 RUN chown -R nextjs:nodejs /app
-
-USER nextjs
 
 EXPOSE 8002
 
