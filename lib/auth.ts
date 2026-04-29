@@ -247,25 +247,34 @@ export async function requireAdmin() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 }
 
-export function setSessionCookie(response: NextResponse, subject: string = SESSION_SUBJECT) {
+function isHttpsRequest(request?: Request) {
+    if (!request) return false;
+
+    const forwardedProto = request.headers.get('x-forwarded-proto')?.split(',')[0]?.trim();
+    if (forwardedProto) return forwardedProto === 'https';
+
+    return new URL(request.url).protocol === 'https:';
+}
+
+export function setSessionCookie(response: NextResponse, subject: string = SESSION_SUBJECT, request?: Request) {
     response.cookies.set({
         name: SESSION_COOKIE,
         value: createSessionValue(subject),
         httpOnly: true,
         sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
+        secure: isHttpsRequest(request),
         path: '/',
         maxAge: SESSION_MAX_AGE,
     });
 }
 
-export function clearSessionCookie(response: NextResponse) {
+export function clearSessionCookie(response: NextResponse, request?: Request) {
     response.cookies.set({
         name: SESSION_COOKIE,
         value: '',
         httpOnly: true,
         sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
+        secure: isHttpsRequest(request),
         path: '/',
         maxAge: 0,
     });

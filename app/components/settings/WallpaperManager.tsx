@@ -67,7 +67,8 @@ export function WallpaperManager({ isOpen, onClose, onSelect, isDarkMode, showTo
                 showToast('同步成功', 'success');
                 fetchWallpapers('bing');
             } else {
-                showToast('同步失败', 'error');
+                const data = await res.json().catch(() => ({}));
+                showToast(data.error || '同步失败', 'error');
             }
         } catch (e) {
             showToast('同步出错', 'error');

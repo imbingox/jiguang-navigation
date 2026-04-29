@@ -22,7 +22,7 @@ export async function POST(request: Request) {
         }
 
         const response = NextResponse.json({ success: true, passwordManagedByEnv: config.managedByEnv });
-        setSessionCookie(response);
+        setSessionCookie(response, undefined, request);
         return response;
     } catch {
         return NextResponse.json({ error: 'Login failed' }, { status: 500 });

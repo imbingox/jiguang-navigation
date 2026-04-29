@@ -222,6 +222,13 @@ Built with the latest web technologies, it offers a stunning visual experience w
    By default, the app creates a strong random secret at `./data/session.secret`. For multi-instance deployments, set the same `SESSION_SECRET` on every instance.  
    默认会在 `./data/session.secret` 自动生成强随机密钥。多实例部署时，请为所有实例设置同一个 `SESSION_SECRET`。
 
+6. **Advanced: reverse proxy HTTPS | 高级：反向代理 HTTPS**
+   If you terminate HTTPS at a reverse proxy, forward the original protocol header so login cookies are marked correctly:  
+   如果 HTTPS 在反向代理层终止，请转发原始协议头，确保登录 Cookie 标记正确：
+   ```nginx
+   proxy_set_header X-Forwarded-Proto $scheme;
+   ```
+
 ---
 
 ## 📖 Usage Guide | 使用指南
