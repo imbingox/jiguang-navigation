@@ -85,20 +85,11 @@ export const HARMONIOUS_COLORS = [
 
 export const getRandomColor = () => HARMONIOUS_COLORS[Math.floor(Math.random() * HARMONIOUS_COLORS.length)];
 
-import { Search, Globe, Github, Code } from 'lucide-react';
+import { Search, Globe, Github } from 'lucide-react';
 
 export const SEARCH_ENGINES = [
   { id: 'local', name: '本地', icon: Search, placeholder: '筛选本地导航...' },
-  { id: 'baidu', name: '百度', icon: Globe, url: 'https://www.baidu.com/s?wd=', placeholder: '百度一下，你就知道' },
   { id: 'google', name: 'Google', icon: Search, url: 'https://www.google.com/search?q=', placeholder: 'Google Search' },
   { id: 'bing', name: 'Bing', icon: Globe, url: 'https://www.bing.com/search?q=', placeholder: 'Bing Search' },
   { id: 'github', name: 'GitHub', icon: Github, url: 'https://github.com/search?q=', placeholder: 'Search GitHub' },
-  {
-    id: 'luogu',
-    name: '洛谷',
-    icon: Code,
-    url: 'https://www.luogu.com.cn/problem/',
-    placeholder: '搜索题目或 Pxxxx 题号'
-  },
 ];
-

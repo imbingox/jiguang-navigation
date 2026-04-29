@@ -1169,6 +1169,10 @@ export function SettingsPanel({
                                             <Switch id="show-navbar" checked={layoutSettings.showNavBar ?? true} onCheckedChange={(c) => setLayoutSettings({ ...layoutSettings, showNavBar: c })} />
                                         </div>
                                         <div className={`flex items-center justify-between p-3 rounded-xl border transition-all hover:border-indigo-500/50 ${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'}`}>
+                                            <Label htmlFor="show-footer" className="cursor-pointer font-medium">显示页脚</Label>
+                                            <Switch id="show-footer" checked={layoutSettings.showFooter ?? true} onCheckedChange={(c) => setLayoutSettings({ ...layoutSettings, showFooter: c })} />
+                                        </div>
+                                        <div className={`flex items-center justify-between p-3 rounded-xl border transition-all hover:border-indigo-500/50 ${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'}`}>
                                             <Label htmlFor="sticky-header" className="cursor-pointer font-medium">固定页首</Label>
                                             <Switch id="sticky-header" checked={layoutSettings.stickyHeader} onCheckedChange={(c) => setLayoutSettings({ ...layoutSettings, stickyHeader: c })} />
                                         </div>

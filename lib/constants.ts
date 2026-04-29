@@ -151,6 +151,7 @@ export const DEFAULT_LAYOUT_SETTINGS = {
     isWideMode: false,
     showWidgets: true,
     showNavBar: true,
+    showFooter: true,
     stickyHeader: true,
     stickyFooter: false,
     bgEnabled: false,

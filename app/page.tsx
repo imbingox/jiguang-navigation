@@ -1048,6 +1048,7 @@ export default function AuroraNav() {
   const activeDragSite = activeDragId ? sites.find(s => s.id === activeDragId) : null;
   const containerClass = layoutSettings.isWideMode ? 'max-w-[98%] px-6' : 'max-w-7xl px-4';
   const currentEngine = SEARCH_ENGINES.find(e => e.id === currentEngineId) || SEARCH_ENGINES[0];
+  const showFooter = layoutSettings.showFooter ?? true;
   const isSearching = !!searchQuery.trim() && currentEngineId === 'local';
   // Fix: Use allFonts (including custom) to find the family
   const currentFontFamily = allFonts.find(f => f.id === layoutSettings.fontFamily)?.family || 'sans-serif';
@@ -1160,7 +1161,7 @@ export default function AuroraNav() {
 
                 {/* Content Container */}
                 <div
-                  className={`mx-auto w-full transition-all duration-300 flex-1 ${containerClass} ${layoutSettings.stickyHeader ? 'pt-28' : ''} ${layoutSettings.stickyFooter ? 'pb-28' : ''}`}>
+                  className={`mx-auto w-full transition-all duration-300 flex-1 ${containerClass} ${layoutSettings.stickyHeader ? 'pt-28' : ''} ${showFooter && layoutSettings.stickyFooter ? 'pb-28' : ''}`}>
                   {!isLoading && layoutSettings.showWidgets && !isSearching && (
                     <div className={`hidden md:block ${layoutSettings.compactMode ? 'mb-4 mt-2' : 'mb-8 mt-4'}`}>
                       <WidgetDashboard isDarkMode={isDarkMode} sitesCount={sites.length} widgetStyle={layoutSettings.widgetStyle as "A" | "B" | "C"} widgetConfig={appConfig.widgetConfig} />
@@ -1371,17 +1372,18 @@ export default function AuroraNav() {
                     </div>
                   </main>
 
-                  {/* HTML5 Content Section - Footer Top */}
-                  <div className={`w-full mb-8 flex ${appConfig.htmlConfig?.footerLayout === 'row' ? 'flex-row flex-wrap justify-center gap-4' : 'flex-col items-center gap-4'}`}>
-                    <SortableContext items={(appConfig.htmlConfig?.footer || []).map((s: any) => s.id)} strategy={verticalListSortingStrategy}>
-                      {(appConfig.htmlConfig?.footer || []).map((section: any, idx: number) => (
-                        <SortableHtmlSection key={section.id || `footer-${idx}`} config={section} isDarkMode={isDarkMode} isLoggedIn={isLoggedIn} onContextMenu={handleHtmlContextMenu} />
-                      ))}
-                    </SortableContext>
-                  </div>
+                  {showFooter && (
+                    <div className={`w-full mb-8 flex ${appConfig.htmlConfig?.footerLayout === 'row' ? 'flex-row flex-wrap justify-center gap-4' : 'flex-col items-center gap-4'}`}>
+                      <SortableContext items={(appConfig.htmlConfig?.footer || []).map((s: any) => s.id)} strategy={verticalListSortingStrategy}>
+                        {(appConfig.htmlConfig?.footer || []).map((section: any, idx: number) => (
+                          <SortableHtmlSection key={section.id || `footer-${idx}`} config={section} isDarkMode={isDarkMode} isLoggedIn={isLoggedIn} onContextMenu={handleHtmlContextMenu} />
+                        ))}
+                      </SortableContext>
+                    </div>
+                  )}
                 </div>
 
-                <Footer isDarkMode={isDarkMode} appConfig={appConfig} isSticky={layoutSettings.stickyFooter} />
+                {showFooter && <Footer isDarkMode={isDarkMode} appConfig={appConfig} isSticky={layoutSettings.stickyFooter} />}
               </>
             )}
           </>
@@ -1692,6 +1694,5 @@ function Toast({ notification, onClose, isDarkMode }: any) {
 
 
 // Updated CategoryPill to support Custom Colors
-
 
 
